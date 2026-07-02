@@ -58,7 +58,7 @@ def execute_script_run(db: Session, run: ScriptRun, script: Script, user: User) 
     from app.core.config import get_settings
 
     settings = get_settings()
-    timeout = settings.script_run_timeout_seconds
+    timeout = script.timeout_seconds or settings.script_run_timeout_seconds
 
     stdout_text = ""
     stderr_text = ""

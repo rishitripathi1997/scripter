@@ -33,6 +33,9 @@ class ScriptSummary(BaseModel):
     published_at: datetime | None
     can_run: bool | None = None
     run_restricted: bool = False
+    timeout_seconds: int | None = None
+    deprecated_at: datetime | None = None
+    deprecation_reason: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -45,6 +48,7 @@ class ProposalCreate(BaseModel):
     input_schema: InputSchema
     credential_requirements: CredentialRequirements = Field(default_factory=CredentialRequirements)
     change_summary: str | None = None
+    timeout_seconds: int | None = Field(default=None, ge=30, le=86400)
 
 
 class ProposalUpdate(BaseModel):
@@ -71,3 +75,11 @@ class ScriptPermissionsResponse(BaseModel):
     restricted: bool
     user_ids: list[str]
     roles: list[str]
+
+
+class ScriptSettingsUpdate(BaseModel):
+    timeout_seconds: int | None = Field(default=None, ge=30, le=86400)
+
+
+class DeprecateScriptRequest(BaseModel):
+    reason: str = Field(min_length=1)

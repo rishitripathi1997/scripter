@@ -47,6 +47,7 @@ if __name__ == "__main__":
     { name: 'dry_run', label: 'Dry run', type: 'boolean', required: false, default: false },
   ])
   const [requiredCreds, setRequiredCreds] = useState('BEARER_TOKEN,TENANT_ID')
+  const [timeoutSeconds, setTimeoutSeconds] = useState('')
   const [error, setError] = useState('')
 
   const createMutation = useMutation({
@@ -61,6 +62,7 @@ if __name__ == "__main__":
           required: requiredCreds.split(',').map((s) => s.trim()).filter(Boolean),
           optional: [],
         },
+        timeout_seconds: timeoutSeconds ? Number(timeoutSeconds) : null,
       }),
     onSuccess: () => navigate('/proposals'),
     onError: (e: Error) => setError(e.message),
@@ -121,6 +123,11 @@ if __name__ == "__main__":
         <label>
           Required credentials (comma-separated ENV keys)
           <input value={requiredCreds} onChange={(e) => setRequiredCreds(e.target.value)} placeholder="BEARER_TOKEN, TENANT_ID" />
+        </label>
+
+        <label>
+          Timeout override (seconds, optional)
+          <input type="number" min={30} max={86400} value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(e.target.value)} placeholder="600" />
         </label>
 
         <button className="btn btn-primary" type="submit" disabled={createMutation.isPending}>

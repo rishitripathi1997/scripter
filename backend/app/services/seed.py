@@ -10,6 +10,7 @@ from app.services.storage import publish_script_version
 
 
 def init_db() -> None:
+    """Legacy helper — prefer Alembic migrations via run_migrations()."""
     Base.metadata.create_all(bind=engine)
 
 

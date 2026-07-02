@@ -43,6 +43,7 @@ def _run_worker(run_id: uuid.UUID, script_id: uuid.UUID, user_id: uuid.UUID) -> 
             message=f"Your run of '{script.name}' finished with status {status_label}.",
             link=f"/runs/{run.id}",
             ntype=ntype,
+            external=run.status.value != "success",
         )
     finally:
         db.close()

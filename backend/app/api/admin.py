@@ -13,9 +13,11 @@ from app.models.script import ReviewAction, Script, ScriptRevision, ScriptReview
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.schemas.script import (
+    DeprecateScriptRequest,
     ReviewActionRequest,
     ScriptPermissionsResponse,
     ScriptPermissionsUpdate,
+    ScriptSettingsUpdate,
     ScriptSummary,
 )
 from app.services.notifications import notify_user
@@ -36,6 +38,9 @@ def _to_summary(script: Script) -> ScriptSummary:
         credential_requirements=script.credential_requirements or {},
         approved_version=script.approved_version,
         published_at=script.published_at,
+        timeout_seconds=script.timeout_seconds,
+        deprecated_at=script.deprecated_at,
+        deprecation_reason=script.deprecation_reason,
     )
 
 
@@ -248,6 +253,17 @@ def request_changes(
     return _to_summary(script)
 
 
+@router.get("/scripts/deprecated", response_model=list[ScriptSummary])
+def list_deprecated_scripts(db: DbSession, _: CurrentAdmin) -> list[ScriptSummary]:
+    scripts = (
+        db.query(Script)
+        .filter(Script.status == ScriptStatus.deprecated)
+        .order_by(Script.deprecated_at.desc())
+        .all()
+    )
+    return [_to_summary(s) for s in scripts]
+
+
 @router.get("/scripts/{script_id}/permissions", response_model=ScriptPermissionsResponse)
 def get_permissions(script_id: str, db: DbSession, _: CurrentAdmin) -> ScriptPermissionsResponse:
     script = db.query(Script).filter(Script.id == script_id).first()
@@ -339,3 +355,103 @@ def export_audit_csv(db: DbSession, _: CurrentAdmin) -> StreamingResponse:
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.patch("/scripts/{script_id}/settings", response_model=ScriptSummary)
+def update_script_settings(
+    script_id: str,
+    body: ScriptSettingsUpdate,
+    db: DbSession,
+    _: CurrentAdmin,
+) -> ScriptSummary:
+    script = db.query(Script).filter(Script.id == script_id).first()
+    if not script or script.status not in {ScriptStatus.active, ScriptStatus.deprecated}:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Script not found")
+
+    script.timeout_seconds = body.timeout_seconds
+    db.commit()
+    db.refresh(script)
+    return _to_summary(script)
+
+
+@router.post("/scripts/{script_id}/deprecate", response_model=ScriptSummary)
+def deprecate_script(
+    script_id: str,
+    body: DeprecateScriptRequest,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> ScriptSummary:
+    script = db.query(Script).filter(Script.id == script_id).first()
+    if not script or script.status != ScriptStatus.active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Active script not found")
+
+    now = datetime.now(timezone.utc)
+    script.status = ScriptStatus.deprecated
+    script.deprecated_at = now
+    script.deprecation_reason = body.reason
+    script.reviewed_by = admin.id
+    script.reviewed_at = now
+
+    db.add(
+        ScriptReviewAction(
+            script_id=script.id,
+            action=ReviewAction.deprecate,
+            actor_id=admin.id,
+            notes=body.reason,
+        )
+    )
+    db.commit()
+    db.refresh(script)
+
+    if script.proposed_by:
+        notify_user(
+            db,
+            script.proposed_by,
+            title="Script deprecated",
+            message=f'"{script.name}" was deprecated: {body.reason}',
+            link="/proposals",
+            ntype=NotificationType.warning,
+            external=True,
+        )
+
+    return _to_summary(script)
+
+
+@router.post("/scripts/{script_id}/reactivate", response_model=ScriptSummary)
+def reactivate_script(
+    script_id: str,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> ScriptSummary:
+    script = db.query(Script).filter(Script.id == script_id).first()
+    if not script or script.status != ScriptStatus.deprecated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deprecated script not found")
+
+    script.status = ScriptStatus.active
+    script.deprecated_at = None
+    script.deprecation_reason = None
+    script.reviewed_by = admin.id
+    script.reviewed_at = datetime.now(timezone.utc)
+
+    db.add(
+        ScriptReviewAction(
+            script_id=script.id,
+            action=ReviewAction.approve,
+            actor_id=admin.id,
+            notes="Reactivated from deprecated",
+        )
+    )
+    db.commit()
+    db.refresh(script)
+
+    if script.proposed_by:
+        notify_user(
+            db,
+            script.proposed_by,
+            title="Script reactivated",
+            message=f'"{script.name}" is active again in the catalog.',
+            link="/catalog",
+            ntype=NotificationType.success,
+        )
+
+    return _to_summary(script)

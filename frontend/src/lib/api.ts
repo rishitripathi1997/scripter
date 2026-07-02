@@ -62,6 +62,9 @@ export interface ScriptSummary {
   published_at: string | null
   can_run?: boolean | null
   run_restricted?: boolean
+  timeout_seconds?: number | null
+  deprecated_at?: string | null
+  deprecation_reason?: string | null
 }
 
 export interface InputField {
@@ -211,7 +214,19 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
-
+  updateScriptSettings: (scriptId: string, body: { timeout_seconds: number | null }) =>
+    request<ScriptSummary>(`/api/admin/scripts/${scriptId}/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  listDeprecatedScripts: () => request<ScriptSummary[]>('/api/admin/scripts/deprecated'),
+  deprecateScript: (scriptId: string, reason: string) =>
+    request<ScriptSummary>(`/api/admin/scripts/${scriptId}/deprecate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+  reactivateScript: (scriptId: string) =>
+    request<ScriptSummary>(`/api/admin/scripts/${scriptId}/reactivate`, { method: 'POST' }),
   exportAuditCsv: async () => {
     const res = await fetch(`${API_BASE}/api/admin/audit/export`, { credentials: 'include' })
     if (!res.ok) throw new ApiError(res.status, 'Export failed')

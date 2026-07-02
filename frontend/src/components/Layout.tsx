@@ -37,7 +37,7 @@ export function Layout() {
             <>
               <div className="nav-section">Admin</div>
               <NavLink to="/admin/review">Review Queue</NavLink>
-              <NavLink to="/admin/scripts">Script Permissions</NavLink>
+              <NavLink to="/admin/scripts">Script Admin</NavLink>
               <NavLink to="/admin/audit">Audit</NavLink>
             </>
           )}

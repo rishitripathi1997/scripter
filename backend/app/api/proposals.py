@@ -24,6 +24,7 @@ def _to_summary(script: Script) -> ScriptSummary:
         credential_requirements=script.credential_requirements or {},
         approved_version=script.approved_version,
         published_at=script.published_at,
+        timeout_seconds=script.timeout_seconds,
     )
 
 
@@ -61,6 +62,7 @@ def create_proposal(body: ProposalCreate, db: DbSession, current_user: CurrentUs
         description=body.description,
         input_schema=body.input_schema.model_dump(),
         credential_requirements=body.credential_requirements.model_dump(),
+        timeout_seconds=body.timeout_seconds,
         status=ScriptStatus.draft,
         proposed_by=current_user.id,
     )

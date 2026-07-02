@@ -6,12 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import admin, auth, credentials, health, notifications, proposals, runs, scripts
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.services.seed import backfill_unpublished_scripts, init_db, seed_admin
+from app.services.migrate import run_migrations
+from app.services.seed import backfill_unpublished_scripts, seed_admin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    run_migrations()
     db = SessionLocal()
     try:
         seed_admin(db)

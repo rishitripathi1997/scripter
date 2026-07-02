@@ -33,6 +33,9 @@ def _to_summary(script: Script, db: DbSession, user: User) -> ScriptSummary:
         published_at=script.published_at,
         can_run=can_run,
         run_restricted=run_restricted,
+        timeout_seconds=script.timeout_seconds,
+        deprecated_at=script.deprecated_at,
+        deprecation_reason=script.deprecation_reason,
     )
 
 

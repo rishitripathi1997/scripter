@@ -5,26 +5,8 @@ Internal platform to share, propose, and run Python scripts with per-user creden
 ## Stack
 
 - **Frontend:** React + TypeScript + Vite
-- **Backend:** FastAPI + PostgreSQL
+- **Backend:** FastAPI + PostgreSQL + Alembic
 - **Deploy target:** EC2 + S3 (AWS Dev account)
-
-## Phase 1 (current)
-
-- Username/password auth with sessions
-- Admin seed user
-- Propose scripts with custom input definitions
-- Admin review queue (approve / reject / request changes)
-- Shared script catalog (approved scripts)
-- Per-user encrypted credentials vault
-- My runs + admin audit views
-
-## Phase 2 (current)
-
-- **Script runner** — subprocess execution with your credentials injected via ENV
-- **Storage** — local filesystem (dev) or S3 (production when `S3_BUCKET` is set)
-- **Run UI** — dynamic form per script, stdout/stderr log viewer
-- Scripts published to storage on admin approval
-- Audit logs redact credential values
 
 ## Quick start (Docker)
 
@@ -39,68 +21,60 @@ Open:
 - **API docs:** http://localhost:8000/docs
 - **Default admin:** `admin` / `admin123` (change in `.env`)
 
-## Local development (without Docker)
+## Features by phase
 
-### Backend (Python 3.12+)
+### Phase 1 — Foundation
+- Username/password auth, roles, propose → admin approve
+- Shared catalog, per-user encrypted credentials
+
+### Phase 2 — Execution
+- Script runner (subprocess + ENV injection)
+- Local/S3 storage for scripts and run logs
+- Dynamic run forms per script
+
+### Phase 3 — Team ops
+- In-app notifications, audit CSV export
+- Script-level run permissions, async runs
+- AWS STS short-lived credentials
+
+### Phase 4 — Production hardening (current)
+- **Alembic migrations** — auto-run on startup (`RUN_DB_MIGRATIONS=true`)
+- **Per-script timeout** — override global `SCRIPT_RUN_TIMEOUT_SECONDS`
+- **Deprecation workflow** — admin deprecate/reactivate; removed from catalog
+- **Slack webhooks** — optional external alerts (`SLACK_WEBHOOK_URL`)
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `SLACK_WEBHOOK_URL` | Slack incoming webhook for alerts |
+| `WEBHOOK_NOTIFICATIONS_ENABLED` | `true` to send Slack messages |
+| `ASYNC_RUNS_ENABLED` | Background script execution (default `true`) |
+| `SCRIPT_RUN_TIMEOUT_SECONDS` | Global default timeout |
+| `RUN_DB_MIGRATIONS` | Run Alembic on startup (default `true`) |
+
+## Database migrations
+
+Migrations run automatically when the API starts. Manual:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export DATABASE_URL=postgresql+psycopg://connectx:connectx@localhost:5432/connectx_scripts
-export SECRET_KEY=dev-secret
-export APP_ENCRYPTION_KEY=dev-encryption-key-change-in-prod!!
-uvicorn app.main:app --reload --port 8000
+alembic upgrade head
 ```
 
-Start PostgreSQL locally or run only the db service:
+Existing DB from before Phase 4: migrations add new columns idempotently.
 
-```bash
-docker compose up db -d
-```
+## Security notes
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The Vite dev server proxies `/api` to `http://localhost:8000`.
+- Credentials encrypted per user; never in audit logs
+- `.env` is not committed — use `.env.example`
+- Change `SECRET_KEY`, `APP_ENCRYPTION_KEY`, and admin password before production
 
 ## Project structure
 
 ```
-backend/app/     FastAPI application
-frontend/src/    React SPA
+backend/app/       FastAPI application
+backend/alembic/   Database migrations
+frontend/src/      React SPA
 docker-compose.yml
 ```
-
-## Security notes
-
-- Credentials are encrypted per user in PostgreSQL
-- API scopes all credential and run access to the logged-in session user
-- Admin audit shows run metadata, not credential values
-- Change `SECRET_KEY`, `APP_ENCRYPTION_KEY`, and admin password before production
-
-## Phase 3 (current)
-
-- **In-app notifications** — proposal submitted, approved/rejected, run completed
-- **Audit CSV export** — admin downloads run history
-- **Script-level permissions** — restrict who can run each script
-- **Async runs** — scripts run in background threads; poll run status
-- **AWS STS** — configure IAM role for short-lived AWS credentials at run time
-
-Set `ASYNC_RUNS_ENABLED=false` in `.env` to run scripts synchronously (blocking API).
-
-For AWS STS on EC2, attach an instance role that allows `sts:AssumeRole` on target roles.
-
-## Next (Phase 4)
-
-- In-app notifications for proposal status
-- Export audit CSV
-- Script-level permissions
-- AWS STS for short-lived credentials
-- Async job queue for long-running scripts

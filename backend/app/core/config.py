@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     script_run_timeout_seconds: int = 600
     async_runs_enabled: bool = True
 
+    # External notifications (Phase 4)
+    slack_webhook_url: str = ""
+    webhook_notifications_enabled: bool = False
+
+    # Alembic
+    run_db_migrations: bool = True
+
     # Seed admin (first boot)
     seed_admin_username: str = "admin"
     seed_admin_password: str = "admin123"
