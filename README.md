@@ -64,6 +64,10 @@ alembic upgrade head
 
 Existing DB from before Phase 4: migrations add new columns idempotently.
 
+## AWS deployment
+
+See **[docs/DEPLOY.md](docs/DEPLOY.md)** for Terraform-based EC2 + S3 deployment (`terraform apply`).
+
 ## Security notes
 
 - Credentials encrypted per user; never in audit logs

@@ -52,7 +52,7 @@ def login(body: LoginRequest, response: Response, db: DbSession) -> AuthResponse
         httponly=True,
         samesite="lax",
         max_age=settings.session_max_age_seconds,
-        secure=not settings.debug,
+        secure=settings.session_cookie_secure,
     )
     return AuthResponse(user=_user_response(user))
 
@@ -66,7 +66,12 @@ def logout(
     settings = get_settings()
     db.query(UserSession).filter(UserSession.user_id == current_user.id).delete()
     db.commit()
-    response.delete_cookie(settings.session_cookie_name)
+    response.delete_cookie(
+        settings.session_cookie_name,
+        httponly=True,
+        samesite="lax",
+        secure=settings.session_cookie_secure,
+    )
     return {"ok": True}
 
 

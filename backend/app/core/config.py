@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production-use-long-random-string"
     session_cookie_name: str = "connectx_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 7  # 7 days
+    session_cookie_secure: bool = False
 
     app_encryption_key: str = "change-me-32-byte-base64-key-for-aes"
 
