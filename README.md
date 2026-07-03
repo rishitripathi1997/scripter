@@ -68,6 +68,10 @@ Existing DB from before Phase 4: migrations add new columns idempotently.
 
 See **[docs/DEPLOY.md](docs/DEPLOY.md)** for Terraform-based EC2 + S3 deployment (`terraform apply`).
 
+## Auto-deploy (Phase 6)
+
+See **[docs/CI.md](docs/CI.md)** for GitHub Actions SSH deploy on push to `main`.
+
 ## Security notes
 
 - Credentials encrypted per user; never in audit logs

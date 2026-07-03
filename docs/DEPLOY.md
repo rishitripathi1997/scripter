@@ -76,6 +76,14 @@ terraform output app_url
 
 ## Redeploy after code changes
 
+### Option A — GitHub Actions (Phase 6, recommended)
+
+Push to `main` — the [Deploy to EC2](../.github/workflows/deploy.yml) workflow runs `deploy.sh` automatically.
+
+Setup once: add `DEPLOY_HOST`, `DEPLOY_USER`, and `DEPLOY_SSH_KEY` secrets. See **[docs/CI.md](CI.md)**.
+
+### Option B — Manual SSH
+
 Push to GitHub, then SSH and run the deploy script:
 
 ```bash
