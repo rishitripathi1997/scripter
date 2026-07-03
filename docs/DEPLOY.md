@@ -9,6 +9,7 @@ Deploy ConnectX Scripts to a single EC2 instance with Terraform. Postgres runs i
 | Resource | Purpose |
 |----------|---------|
 | EC2 `t3.small` | Runs Docker Compose (API + Postgres + nginx) |
+| VPC + public subnet | Created automatically (your account has no default VPC) |
 | Elastic IP | Stable URL for the app |
 | S3 bucket | Script storage and run logs |
 | IAM role | EC2 → S3 access + STS AssumeRole for user scripts |
@@ -129,6 +130,7 @@ Add a GitHub Action that SSHs to EC2 and runs `deploy.sh` on every push to `main
 | Problem | Fix |
 |---------|-----|
 | App not loading after 10 min | Check `sudo tail -f /var/log/connectx-user-data.log` on EC2 |
+| `VPCIdNotSpecified` / no default VPC | Fixed in latest Terraform — `git pull` and re-run `terraform apply` |
 | Login fails / session lost | Confirm `SESSION_COOKIE_SECURE=false` in `/opt/connectx-scripts/.env` |
 | `git pull` fails on deploy | Ensure repo is public, or add a deploy key to EC2 |
 | S3 permission errors | Verify instance has IAM profile: `aws sts get-caller-identity` on EC2 |

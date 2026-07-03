@@ -57,3 +57,15 @@ variable "admin_username" {
   type        = string
   default     = "admin"
 }
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC (created when account has no default VPC)"
+  type        = string
+  default     = "10.20.0.0/16"
+}
+
+variable "public_subnet_cidr" {
+  description = "CIDR block for the public subnet"
+  type        = string
+  default     = "10.20.1.0/24"
+}
