@@ -141,10 +141,11 @@ def create_pending_run(
     run = ScriptRun(
         user_id=user.id,
         script_id=script.id,
-        script_version=script.approved_version,
+        script_version=script.approved_version or 1,
         status=RunStatus.pending,
         is_test_run=is_test_run,
-        input_snapshot=inputs,
+        input_snapshot=inputs or {},
+        credentials_used=[],
         username_snapshot=user.username,
     )
     db.add(run)

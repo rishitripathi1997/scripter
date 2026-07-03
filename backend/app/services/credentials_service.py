@@ -73,7 +73,7 @@ def load_user_credentials_for_script(
                         used.append(aws_key)
             elif aws_required:
                 missing.extend(k for k in aws_required if k not in env and k not in missing)
-        except RuntimeError:
+        except Exception:
             if aws_required:
                 missing.extend(k for k in aws_required if k not in env and k not in missing)
 

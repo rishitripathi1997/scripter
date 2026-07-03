@@ -33,8 +33,8 @@ def load_aws_sts_env(db: Session, user_id: uuid.UUID) -> dict[str, str]:
     except (json.JSONDecodeError, KeyError):
         return {}
 
-    role_arn = config.get("role_arn")
-    if not role_arn:
+    role_arn = (config.get("role_arn") or "").strip()
+    if not role_arn or len(role_arn) < 20 or not role_arn.startswith("arn:"):
         return {}
 
     settings = get_settings()
@@ -58,6 +58,8 @@ def load_aws_sts_env(db: Session, user_id: uuid.UUID) -> dict[str, str]:
         resp = sts.assume_role(**assume_kwargs)
     except ClientError as e:
         raise RuntimeError(f"AWS STS AssumeRole failed: {e.response['Error']['Message']}") from e
+    except Exception as e:
+        raise RuntimeError(f"AWS STS AssumeRole failed: {e}") from e
 
     creds = resp["Credentials"]
     return {

@@ -131,6 +131,37 @@ Add a GitHub Action that SSHs to EC2 and runs `deploy.sh` on every push to `main
 |---------|-----|
 | App not loading after 10 min | Check `sudo tail -f /var/log/connectx-user-data.log` on EC2 |
 | `VPCIdNotSpecified` / no default VPC | Fixed in latest Terraform — `git pull` and re-run `terraform apply` |
+| **502 Bad Gateway** on login | API container likely crashed — see below |
+| `permission denied` on `.env` | Run with `sudo`, or `sudo chown -R ec2-user:ec2-user /opt/connectx-scripts` |
 | Login fails / session lost | Confirm `SESSION_COOKIE_SECURE=false` in `/opt/connectx-scripts/.env` |
 | `git pull` fails on deploy | Ensure repo is public, or add a deploy key to EC2 |
 | S3 permission errors | Verify instance has IAM profile: `aws sts get-caller-identity` on EC2 |
+
+### 502 Bad Gateway
+
+The UI loads but `/api/*` returns 502 — nginx is up but the **API container is down**.
+
+SSH in and inspect:
+
+```bash
+ssh -i keys/connectx-scripts-key.pem ec2-user@$(terraform output -raw public_ip)
+cd /opt/connectx-scripts
+sudo chown -R ec2-user:ec2-user /opt/connectx-scripts   # if .env permission denied
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs api --tail 80
+```
+
+**Quick fix** (often a bad `.env` from special characters in secrets):
+
+```bash
+# Regenerate a safe encryption key (32 alphanumeric chars)
+python3 -c "import secrets; print(secrets.token_urlsafe(32)[:32])"
+# Edit .env — set APP_ENCRYPTION_KEY to that value, then:
+docker compose -f docker-compose.prod.yml up -d --build api web
+```
+
+Or pull latest code and redeploy:
+
+```bash
+sudo /opt/connectx-scripts/scripts/deploy.sh
+```

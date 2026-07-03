@@ -10,7 +10,7 @@ resource "random_password" "secret_key" {
 
 resource "random_password" "encryption_key" {
   length  = 32
-  special = true
+  special = false
 }
 
 resource "random_password" "admin_password" {
@@ -180,6 +180,12 @@ resource "aws_instance" "app" {
     volume_size = var.root_volume_size_gb
     volume_type = "gp3"
     encrypted   = true
+  }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
   }
 
   user_data = templatefile("${path.module}/templates/user-data.sh.tpl", {

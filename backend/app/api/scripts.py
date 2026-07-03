@@ -1,6 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession
+
+logger = logging.getLogger(__name__)
 from app.core.config import get_settings
 from app.models.script import Script, ScriptStatus
 from app.models.user import User
@@ -96,7 +100,14 @@ def run_script(
             detail="Script is not published. Ask admin to re-approve the script.",
         )
 
-    _, _, missing = load_user_credentials_for_script(db, current_user.id, script)
+    try:
+        _, _, missing = load_user_credentials_for_script(db, current_user.id, script)
+    except Exception as e:
+        logger.exception("Failed to load credentials for script_id=%s", script_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Could not decrypt credentials — re-save them in My Credentials. ({e})",
+        ) from e
     if missing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -116,5 +127,11 @@ def run_script(
             run = create_and_execute_run(db, script, current_user, body.inputs or {})
     except RunnerError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Failed to start script run for script_id=%s", script_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
 
     return _run_summary(run, script)

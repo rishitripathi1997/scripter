@@ -4,7 +4,7 @@ from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import engine
-from app.models import User, UserRole
+from app.models.user import User, UserRole
 from app.models.script import Script, ScriptRevision, ScriptStatus
 from app.services.storage import publish_script_version
 

@@ -46,8 +46,19 @@ WEBHOOK_NOTIFICATIONS_ENABLED=false
 RUN_DB_MIGRATIONS=true
 EOF
 chmod 600 .env
+chown -R ec2-user:ec2-user "$APP_DIR"
 
-echo "==> Building and starting containers"
+echo "==> Building and starting containers (this can take several minutes)"
 docker compose -f "$COMPOSE_FILE" up -d --build
 
-echo "==> Bootstrap complete"
+echo "==> Waiting for API health"
+for i in $(seq 1 60); do
+  if docker compose -f "$COMPOSE_FILE" exec -T api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" 2>/dev/null; then
+    echo "API is healthy"
+    break
+  fi
+  echo "Waiting for API... ($i/60)"
+  sleep 10
+done
+
+docker compose -f "$COMPOSE_FILE" ps
