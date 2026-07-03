@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { EmptyState } from '../components/ui/EmptyState'
+import { TableSkeleton } from '../components/ui/Skeleton'
 import { api } from '../lib/api'
 
 export function MyRunsPage() {
@@ -10,42 +12,52 @@ export function MyRunsPage() {
 
   return (
     <div>
-      <header className="page-header">
-        <h1>My Runs</h1>
-        <p>Your private execution history — other users cannot see these</p>
+      <header className="page-header row">
+        <div>
+          <h1>My Runs</h1>
+          <p>Your private execution history — other users cannot see these</p>
+        </div>
+        <Link className="btn btn-primary" to="/catalog">Run a script</Link>
       </header>
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <TableSkeleton rows={5} cols={5} />}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Script</th>
-              <th>Status</th>
-              <th>Started</th>
-              <th>Exit</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {!isLoading && data?.length === 0 && (
-              <tr><td colSpan={5} className="muted">No runs yet. Run a script from the catalog.</td></tr>
-            )}
-            {data?.map((run) => (
-              <tr key={run.id}>
-                <td>{run.script_name || run.script_id}</td>
-                <td><span className={`badge badge-${run.status}`}>{run.status}</span></td>
-                <td>{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</td>
-                <td>{run.exit_code ?? '—'}</td>
-                <td>
-                  <Link className="btn btn-ghost btn-sm" to={`/runs/${run.id}`}>View logs</Link>
-                </td>
+      {!isLoading && data?.length === 0 && (
+        <EmptyState
+          title="No runs yet"
+          description="Pick a script from the catalog and execute it with your credentials."
+          action={<Link className="btn btn-primary" to="/catalog">Browse catalog</Link>}
+        />
+      )}
+
+      {!isLoading && data && data.length > 0 && (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Script</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Exit</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {data.map((run) => (
+                <tr key={run.id}>
+                  <td><strong>{run.script_name || run.script_id}</strong></td>
+                  <td><span className={`badge badge-${run.status}`}>{run.status}</span></td>
+                  <td className="small">{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</td>
+                  <td>{run.exit_code ?? '—'}</td>
+                  <td>
+                    <Link className="btn btn-ghost btn-sm" to={`/runs/${run.id}`}>View logs</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

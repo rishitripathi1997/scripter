@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { DynamicInputForm } from '../components/DynamicInputForm'
+import { CardSkeleton, PageHeaderSkeleton } from '../components/ui/Skeleton'
 import { api, ApiError } from '../lib/api'
 import { getMissingCredentials } from '../lib/credentials'
 
@@ -32,7 +33,16 @@ export function RunScriptPage() {
   const runError =
     runMutation.error instanceof ApiError ? runMutation.error.message : runMutation.error ? 'Run failed' : null
 
-  if (isLoading) return <p>Loading script...</p>
+  if (isLoading) {
+    return (
+      <div>
+        <PageHeaderSkeleton />
+        <CardSkeleton />
+        <div className="skeleton-mt"><CardSkeleton /></div>
+      </div>
+    )
+  }
+
   if (error || !script) return <div className="alert alert-error">Script not found</div>
 
   if (script.can_run === false) {
@@ -44,12 +54,16 @@ export function RunScriptPage() {
   }
 
   return (
-    <div>
+    <div className="run-page">
       <header className="page-header">
-        <div>
-          <Link to="/catalog" className="muted small">← Back to catalog</Link>
-          <h1>Run: {script.name}</h1>
-          <p>{script.description || 'Fill in the inputs below and run with your credentials.'}</p>
+        <Link to="/catalog" className="back-link">← Back to catalog</Link>
+        <h1>Run: {script.name}</h1>
+        <p>{script.description || 'Fill in the inputs below and run with your credentials.'}</p>
+        <div className="run-meta">
+          <span className="badge badge-active">v{script.approved_version}</span>
+          {script.timeout_seconds && (
+            <span className="muted small">Timeout: {script.timeout_seconds}s</span>
+          )}
         </div>
       </header>
 
@@ -62,21 +76,20 @@ export function RunScriptPage() {
 
       {runError && <div className="alert alert-error">{runError}</div>}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <h3>Required credentials (from your vault)</h3>
-        <ul className="cred-list">
+      <div className="card run-cred-card">
+        <h3>Required credentials</h3>
+        <p className="muted small">Injected from your private vault at run time</p>
+        <ul className="cred-status-list">
           {required.length === 0 && <li className="muted">None required</li>}
           {required.map((key) => {
             const ok =
               savedKeys.has(key) || (hasSts && ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'].includes(key))
             return (
-              <li key={key}>
-                <code>{key}</code>{' '}
-                {ok ? (
-                  <span className="badge badge-success">configured</span>
-                ) : (
-                  <span className="badge badge-rejected">missing</span>
-                )}
+              <li key={key} className={ok ? 'cred-ok' : 'cred-missing'}>
+                <code>{key}</code>
+                <span className={`badge ${ok ? 'badge-success' : 'badge-rejected'}`}>
+                  {ok ? 'configured' : 'missing'}
+                </span>
               </li>
             )
           })}
@@ -87,9 +100,10 @@ export function RunScriptPage() {
         fields={script.input_schema?.inputs ?? []}
         onSubmit={(inputs) => runMutation.mutate(inputs)}
         submitting={runMutation.isPending}
+        disabled={missingCreds.length > 0}
       />
 
-      <p className="muted small" style={{ marginTop: '1rem' }}>
+      <p className="muted small run-hint">
         Runs execute in the background. You will be redirected to the run page to watch progress.
       </p>
     </div>
